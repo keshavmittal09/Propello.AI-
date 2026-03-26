@@ -1,0 +1,2395 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Propello AI — Real Estate Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    /* ── RESET & VARS ────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --ivory: #faf7f2;
+      --ivory-dark: #f0ead8;
+      --sand: #e8dfc8;
+      --sand-dark: #d4c8a8;
+      --terracotta: #c1603a;
+      --terra-dark: #9e4b29;
+      --terra-pale: #f0d8cc;
+      --forest: #1a4a3a;
+      --forest-mid: #2d6b55;
+      --forest-pale: #e8f2ee;
+      --ink: #1c1a16;
+      --ink-mid: #3d3830;
+      --ink-light: #7a7060;
+      --ink-dim: #b0a898;
+      --white: #ffffff;
+      --sidebar-w: 280px;
+      --radius: 16px;
+      --transition: 0.22s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--ivory);
+      color: var(--ink);
+      display: flex;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--ink);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .sidebar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 1px;
+      height: 100%;
+      background: linear-gradient(180deg, transparent, rgba(193, 96, 58, 0.4) 30%, rgba(193, 96, 58, 0.4) 70%, transparent);
+    }
+
+    .sidebar-logo {
+      padding: 28px 24px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .logo-wordmark {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ivory);
+      letter-spacing: -0.01em;
+    }
+
+    .logo-wordmark span {
+      color: var(--terracotta);
+    }
+
+    .logo-sub {
+      font-size: 10px;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-top: 3px;
+    }
+
+    /* Sidebar sections */
+    .sidebar-section {
+      padding: 20px 24px 0;
+    }
+
+    .sidebar-section-label {
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--ink-dim);
+      margin-bottom: 10px;
+    }
+
+    /* Project selector */
+    .project-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 240px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .project-list::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    .project-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    .project-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      background: transparent;
+    }
+
+    .project-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .project-card.active {
+      background: rgba(193, 96, 58, 0.15);
+      border-color: rgba(193, 96, 58, 0.35);
+    }
+
+    .project-emoji {
+      font-size: 18px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .project-info {
+      min-width: 0;
+    }
+
+    .project-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ivory);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .project-dev {
+      font-size: 10px;
+      color: var(--ink-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .add-project-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      margin-top: 8px;
+      border-radius: 10px;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      background: transparent;
+      cursor: pointer;
+      color: var(--ink-dim);
+      font-family: 'Outfit', sans-serif;
+      font-size: 12px;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+
+    .add-project-btn:hover {
+      border-color: var(--terracotta);
+      color: var(--terracotta);
+      background: rgba(193, 96, 58, 0.05);
+      transform: translateY(-1px);
+    }
+
+    .add-project-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Language selector */
+    .lang-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+
+    .lang-btn {
+      padding: 7px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: transparent;
+      cursor: pointer;
+      text-align: center;
+      transition: all var(--transition);
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .lang-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .lang-btn.active {
+      background: rgba(193, 96, 58, 0.2);
+      border-color: rgba(193, 96, 58, 0.45);
+    }
+
+    .lang-native {
+      display: block;
+      font-size: 13px;
+      color: var(--ivory);
+      font-weight: 500;
+      line-height: 1.2;
+    }
+
+    .lang-en {
+      display: block;
+      font-size: 9px;
+      color: var(--ink-dim);
+      margin-top: 1px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Lead panel */
+    .lead-panel {
+      padding: 16px 24px;
+      margin-top: auto;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .lead-panel-title {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--ink-dim);
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .lead-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .lead-field-label {
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-dim);
+    }
+
+    .lead-field-value {
+      font-size: 11px;
+      color: var(--ivory);
+      margin-top: 2px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lead-field-value.empty {
+      color: var(--ink-light);
+      font-style: italic;
+      font-weight: 300;
+    }
+
+    /* ── MAIN CHAT AREA ──────────────────────────────────────── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: var(--ivory);
+    }
+
+    /* Header */
+    .chat-header {
+      padding: 20px 32px 16px;
+      border-bottom: 1px solid var(--sand);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--white);
+      flex-shrink: 0;
+    }
+
+    .advisor-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--forest-mid), var(--forest));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 12px rgba(26, 74, 58, 0.25);
+    }
+
+    .advisor-info {
+      flex: 1;
+    }
+
+    .advisor-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .advisor-role {
+      font-size: 12px;
+      color: var(--ink-light);
+      margin-top: 1px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: var(--forest-pale);
+      border-radius: 20px;
+      font-size: 11px;
+      color: var(--forest);
+      font-weight: 500;
+    }
+
+    .status-badge::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #2eb87a;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.35
+      }
+    }
+
+    .header-project {
+      padding: 4px 12px;
+      background: var(--terra-pale);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--terracotta);
+    }
+
+    /* Messages */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      background: var(--ivory);
+    }
+
+    .messages::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .messages::-webkit-scrollbar-thumb {
+      background: var(--sand-dark);
+      border-radius: 5px;
+    }
+
+    /* Message groups */
+    .msg-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-width: 72%;
+      animation: msgIn 0.28s ease;
+    }
+
+    @keyframes msgIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .msg-group.bot {
+      align-self: flex-start;
+    }
+
+    .msg-group.user {
+      align-self: flex-end;
+    }
+
+    .msg-meta {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-dim);
+      padding: 0 4px;
+    }
+
+    .msg-group.user .msg-meta {
+      text-align: right;
+    }
+
+    .bubble {
+      padding: 13px 18px;
+      font-size: 14px;
+      line-height: 1.7;
+      border-radius: 4px 20px 20px 20px;
+    }
+
+    .msg-group.bot .bubble {
+      background: var(--white);
+      color: var(--ink-mid);
+      border: 1px solid var(--sand);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    }
+
+    .msg-group.user .bubble {
+      background: var(--terracotta);
+      color: var(--white);
+      border-radius: 20px 4px 20px 20px;
+      font-weight: 400;
+    }
+
+    /* Typing */
+    .typing-dots {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      padding: 14px 18px;
+      background: var(--white);
+      border: 1px solid var(--sand);
+      border-radius: 4px 20px 20px 20px;
+      width: fit-content;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--sand-dark);
+    }
+
+    .dot:nth-child(1) {
+      animation: blink 1.2s 0s infinite;
+    }
+
+    .dot:nth-child(2) {
+      animation: blink 1.2s .2s infinite;
+    }
+
+    .dot:nth-child(3) {
+      animation: blink 1.2s .4s infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      80%,
+      100% {
+        opacity: .2;
+        transform: scale(0.85)
+      }
+
+      40% {
+        opacity: 1;
+        transform: scale(1)
+      }
+    }
+
+    /* Quick replies */
+    .quick-area {
+      padding: 0 32px 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .qr-btn {
+      padding: 7px 16px;
+      border: 1.5px solid var(--sand-dark);
+      background: var(--white);
+      color: var(--ink-mid);
+      font-family: 'Outfit', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+
+    .qr-btn:hover {
+      border-color: var(--terracotta);
+      color: var(--terracotta);
+      background: var(--terra-pale);
+    }
+
+    /* Input area */
+    .input-area {
+      padding: 16px 32px 20px;
+      border-top: 1px solid var(--sand);
+      background: var(--white);
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    .input-wrap {
+      flex: 1;
+      background: var(--ivory);
+      border: 1.5px solid var(--sand);
+      border-radius: 16px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      transition: border-color var(--transition);
+    }
+
+    .input-wrap:focus-within {
+      border-color: var(--terracotta);
+    }
+
+    textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      color: var(--ink);
+      resize: none;
+      min-height: 22px;
+      max-height: 120px;
+      line-height: 1.55;
+    }
+
+    textarea::placeholder {
+      color: var(--ink-dim);
+    }
+
+    .char-hint {
+      font-size: 10px;
+      color: var(--ink-dim);
+      padding-bottom: 2px;
+    }
+
+    .send-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      background: var(--terracotta);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all var(--transition);
+      box-shadow: 0 4px 14px rgba(193, 96, 58, 0.3);
+    }
+
+    .send-btn:hover {
+      background: var(--terra-dark);
+      transform: scale(1.05);
+      box-shadow: 0 6px 18px rgba(193, 96, 58, 0.4);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .send-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* ── VOICE BUTTON ────────────────────────────────────────── */
+    .mic-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      background: var(--ivory-dark);
+      border: 1.5px solid var(--sand);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all var(--transition);
+      position: relative;
+    }
+
+    .mic-btn:hover {
+      background: var(--sand);
+      border-color: var(--sand-dark);
+    }
+
+    .mic-btn.listening {
+      background: #fde8e8;
+      border-color: #e05252;
+      animation: micPulse 1.2s ease-in-out infinite;
+    }
+
+    .mic-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    @keyframes micPulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(224, 82, 82, 0.4);
+      }
+
+      50% {
+        box-shadow: 0 0 0 8px rgba(224, 82, 82, 0);
+      }
+    }
+
+    /* Speaking indicator on bot bubble */
+    .bubble.speaking {
+      border-color: var(--terracotta) !important;
+      box-shadow: 0 0 0 2px rgba(193, 96, 58, 0.15) !important;
+    }
+
+    /* TTS toggle in header */
+    .tts-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1.5px solid var(--sand);
+      background: var(--white);
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--ink-light);
+      transition: all var(--transition);
+    }
+
+    .tts-toggle.on {
+      background: var(--forest-pale);
+      border-color: var(--forest-mid);
+      color: var(--forest);
+    }
+
+    .tts-toggle svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    /* ── MODAL ───────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(28, 26, 22, 0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 32px;
+      width: 560px;
+      max-width: 95vw;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+      animation: modalIn 0.25s ease;
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(0.96)
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1)
+      }
+    }
+
+    .modal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+
+    .modal-sub {
+      font-size: 13px;
+      color: var(--ink-light);
+      margin-bottom: 24px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .form-row.single {
+      grid-template-columns: 1fr;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-light);
+    }
+
+    .form-input,
+    .form-textarea,
+    .form-select {
+      padding: 10px 14px;
+      border: 1.5px solid var(--sand);
+      border-radius: 10px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 13.5px;
+      color: var(--ink);
+      background: var(--ivory);
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    .form-input:focus,
+    .form-textarea:focus,
+    .form-select:focus {
+      border-color: var(--terracotta);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 70px;
+      line-height: 1.5;
+    }
+
+    .form-hint {
+      font-size: 10px;
+      color: var(--ink-dim);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    .btn-cancel {
+      padding: 10px 22px;
+      border: 1.5px solid var(--sand-dark);
+      background: transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      color: var(--ink-light);
+      transition: all var(--transition);
+    }
+
+    .btn-cancel:hover {
+      border-color: var(--ink-light);
+      color: var(--ink);
+    }
+
+    .btn-submit {
+      padding: 10px 26px;
+      background: var(--terracotta);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(193, 96, 58, 0.25);
+      transition: all var(--transition);
+    }
+
+    .btn-submit:hover {
+      background: var(--terra-dark);
+    }
+
+    /* ── TOAST ───────────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--forest);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      z-index: 200;
+      transform: translateY(80px);
+      transition: transform 0.3s ease;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+    }
+
+    /* ── VOICE CALL MODE ─────────────────────────────────────── */
+    .call-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(20, 30, 25, 0.85);
+      backdrop-filter: blur(25px);
+      -webkit-backdrop-filter: blur(25px);
+      z-index: 300;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+
+    .call-overlay.active {
+      display: flex;
+    }
+
+    .call-top {
+      position: absolute;
+      top: 40px;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .call-project-badge {
+      padding: 6px 16px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.9);
+      letter-spacing: 0.08em;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Avatar ring */
+    .call-avatar-wrap {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+
+    .call-avatar-ring {
+      position: absolute;
+      inset: -10px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      animation: none;
+    }
+
+    .call-avatar-ring.pulse-ring {
+      animation: ringPulse 1.6s ease-out infinite;
+    }
+
+    @keyframes ringPulse {
+      0% {
+        transform: scale(1);
+        opacity: 0.6;
+      }
+
+      100% {
+        transform: scale(1.6);
+        opacity: 0;
+      }
+    }
+
+    .call-avatar-ring-2 {
+      position: absolute;
+      inset: -24px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      animation: none;
+    }
+
+    .call-avatar-ring-2.pulse-ring {
+      animation: ringPulse2 1.6s ease-out 0.4s infinite;
+    }
+
+    @keyframes ringPulse2 {
+      0% {
+        transform: scale(1);
+        opacity: 0.4;
+      }
+
+      100% {
+        transform: scale(1.4);
+        opacity: 0;
+      }
+    }
+
+    .call-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 54px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Name & status */
+    .call-name {
+      font-family: 'Outfit', sans-serif;
+      font-size: 34px;
+      font-weight: 400;
+      color: #fff;
+      margin-bottom: 4px;
+      text-align: center;
+      letter-spacing: -0.03em;
+    }
+
+    .call-role {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.6);
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    /* Status label */
+    .call-status {
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      margin-bottom: 32px;
+      min-height: 20px;
+      text-align: center;
+      transition: all 0.3s;
+    }
+
+    .call-status.idle {
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .call-status.speaking {
+      color: #f4f4f4;
+    }
+
+    .call-status.thinking {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .call-status.listening {
+      color: #2eb87a;
+    }
+
+    /* Waveform */
+    .waveform {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 40px;
+      margin-bottom: 36px;
+    }
+
+    .wave-bar {
+      width: 4px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      height: 8px;
+      transition: height 0.1s ease;
+    }
+
+    .waveform.active .wave-bar {
+      background: #fff;
+    }
+
+    .waveform.speaking-wave .wave-bar {
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Timer */
+    .call-timer {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.3);
+      margin-bottom: 48px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Controls */
+    .call-controls {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .call-ctrl-btn {
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      font-size: 20px;
+    }
+
+    .call-ctrl-btn:hover {
+      transform: scale(1.08);
+    }
+
+    .call-ctrl-btn.mute-btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .call-ctrl-btn.mute-btn.muted {
+      background: rgba(224, 82, 82, 0.25);
+      color: #e05252;
+    }
+
+    .call-ctrl-btn.end-btn {
+      width: 76px;
+      height: 76px;
+      background: #ff3b30;
+      color: white;
+      box-shadow: 0 8px 24px rgba(255, 59, 48, 0.4);
+    }
+
+    .call-ctrl-btn.end-btn:hover {
+      background: #d03027;
+      transform: scale(1.05);
+    }
+
+    .call-ctrl-btn.spd-btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    /* Transcript strip */
+    .call-transcript {
+      position: absolute;
+      bottom: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(480px, 90vw);
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #000000;
+      line-height: 1.6;
+      max-height: 80px;
+      overflow: hidden;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.3s;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      z-index: 100;
+    }
+
+    .call-transcript.visible {
+      opacity: 1;
+    }
+
+    /* Call start button on main UI */
+    .start-call-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--forest-mid);
+      background: var(--forest-pale);
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--forest);
+      transition: all var(--transition);
+    }
+
+    .start-call-btn:hover {
+      background: var(--forest-mid);
+      color: white;
+    }
+
+    .start-call-btn svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    @media (max-width: 700px) {
+      .sidebar {
+        display: none;
+      }
+
+      .messages {
+        padding: 16px;
+      }
+
+      .chat-header {
+        padding: 14px 16px;
+      }
+
+      .input-area {
+        padding: 12px 16px 16px;
+      }
+
+      .quick-area {
+        padding: 0 16px 10px;
+      }
+    }
+
+    /* Section spacing in sidebar */
+    .sidebar-section {
+      padding: 16px 20px 0;
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 8px;
+    }
+
+    .sidebar-content::-webkit-scrollbar {
+      width: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── SIDEBAR ──────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-wordmark">Propello<span>.</span>AI</div>
+      <div class="logo-sub">Real Estate Intelligence</div>
+    </div>
+
+    {% if admin_view %}
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Projects Content</div>
+      <div class="project-list" id="project-list">
+        {% for p in projects %}
+        <div class="project-card" onclick="openModal()">
+          <div class="project-emoji">{{ p.logo_emoji }}</div>
+          <div class="project-info">
+            <div class="project-name">{{ p.name }}</div>
+            <div class="project-dev">{{ p.developer }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="sidebar-section" style="padding-top: 10px;">
+      <button class="add-project-btn" onclick="openModal()" style="width: 100%;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Add Project
+      </button>
+
+      <div style="margin-top: 15px;">
+        <div class="sidebar-section-label" style="font-size: 10px; opacity: 0.7; margin-bottom: 8px;">CURRENT PROJECTS
+        </div>
+        <div class="project-list" id="project-list"
+          style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+          {% for p in projects %}
+          <div class="project-card" data-id="{{ p.id }}" data-name="{{ p.name }}" data-dev="{{ p.developer }}"
+            data-emoji="{{ p.logo_emoji }}"
+            style="padding: 10px; border: 1px solid var(--sand); border-radius: 8px; display: flex; align-items: center; gap: 10px; background: var(--white);">
+            <div class="project-emoji" style="font-size: 20px;">{{ p.logo_emoji }}</div>
+            <div class="project-info" style="display: flex; flex-direction: column; flex-grow: 1; overflow: hidden;">
+              <div class="project-name"
+                style="font-weight: 500; font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ p.name }}</div>
+              <div class="project-dev"
+                style="font-size: 11px; color: var(--ink-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ p.developer }}</div>
+            </div>
+            <button onclick="event.stopPropagation(); deleteProject('{{ p.id }}')"
+              style="margin-left: auto; background: none; border: none; cursor: pointer; color: var(--terracotta); padding: 4px;"
+              title="Delete Project">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+            </button>
+          </div>
+          {% else %}
+          <div style="font-size: 12px; color: var(--ink-light); text-align: center; padding: 10px 0;">No projects added
+            yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="margin-top: 20px;">
+      <div class="sidebar-section-label">Agent Mode</div>
+      <div style="font-size: 11px; color: var(--ink-light); line-height: 1.5; padding-top: 5px;">
+        Priya is actively analyzing the entire portfolio of properties to find your perfect match.
+      </div>
+    </div>
+    </div>
+
+    <div class="lead-panel">
+      <div class="lead-panel-title">Lead Captured</div>
+      <div class="lead-fields">
+        <div class="lead-field">
+          <div class="lead-field-label">Name</div>
+          <div class="lead-field-value empty" id="ld-name">—</div>
+        </div>
+        <div class="lead-field">
+          <div class="lead-field-label">Phone</div>
+          <div class="lead-field-value empty" id="ld-phone">—</div>
+        </div>
+        <div class="lead-field">
+          <div class="lead-field-label">Budget</div>
+          <div class="lead-field-value empty" id="ld-budget">—</div>
+        </div>
+        <div class="lead-field">
+          <div class="lead-field-label">Location</div>
+          <div class="lead-field-value empty" id="ld-location">—</div>
+        </div>
+        <div class="lead-field">
+          <div class="lead-field-label">Appointment</div>
+          <div class="lead-field-value empty" id="ld-appointment">—</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CHAT ─────────────────────────────────────────── -->
+  <main class="main">
+    <div class="chat-header">
+      <div class="advisor-avatar">🏡</div>
+      <div class="advisor-info">
+        <div class="advisor-name">Priya</div>
+        <div class="advisor-role">Senior Property Advisor · Propello AI</div>
+      </div>
+      <div class="header-project" id="header-project">Global Portfolio</div>
+      <select id="lang-select"
+        onchange="state.language=this.value; showToast('Language set to ' + this.options[this.selectedIndex].text);"
+        style="margin-right: 10px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--sand); background: var(--white); font-family: 'Outfit'; font-size: 11px; color: var(--ink);">
+        <option value="auto">Auto-Detect Lang</option>
+        <option value="en">English</option>
+        <option value="hi">Hindi (हिन्दी)</option>
+        <option value="mr">Marathi (मराठी)</option>
+        <option value="gu">Gujarati (ગુજરાતી)</option>
+        <option value="ta">Tamil (தமிழ்)</option>
+        <option value="te">Telugu (తెలుగు)</option>
+        <option value="bn">Bengali (বাংলা)</option>
+        <option value="kn">Kannada (ಕನ್ನಡ)</option>
+        <option value="ml">Malayalam (മലയാളം)</option>
+        <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+      </select>
+      <button class="start-call-btn" onclick="startCall()" title="Start voice call with Priya">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path
+            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.68 12 19.79 19.79 0 0 1 1.62 3.38 2 2 0 0 1 3.59 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.85a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+        </svg>
+        Call Priya
+      </button>
+      <button class="tts-toggle" id="tts-toggle" onclick="toggleTTS()" title="Toggle voice replies">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+        </svg>
+        Voice Mode
+      </button>
+      <div class="status-badge">Available</div>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="quick-area" id="quick-area"></div>
+
+    <div class="input-area">
+      <button class="mic-btn" id="mic-btn" onclick="toggleVoiceInput()" title="Hold to speak">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink-mid)" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <rect x="9" y="2" width="6" height="11" rx="3" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="22" />
+          <line x1="8" y1="22" x2="16" y2="22" />
+        </svg>
+      </button>
+      <div class="input-wrap">
+        <textarea id="msg-input" rows="1" placeholder="Ask about pricing, location, amenities…"></textarea>
+      </div>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"
+          stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13" />
+          <polygon points="22 2 15 22 11 13 2 9 22 2" />
+        </svg>
+      </button>
+    </div>
+  </main>
+
+  <!-- ── ADD PROJECT MODAL ─────────────────────────────────── -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+    <div class="modal">
+      <div class="modal-title">Add New Project</div>
+      <div class="modal-sub">Fill in the core details — the AI will use this to answer buyer questions.</div>
+
+      <div class="form-row single"
+        style="margin-bottom: 24px; padding: 16px; background: rgba(26,107,90,0.05); border: 1px dashed rgba(26,107,90,0.3); border-radius: 12px;">
+        <label class="form-label"
+          style="display: block; margin-bottom: 12px; color: var(--ink-mid); font-weight: 500; text-align: center;">Magic
+          Auto-Fill from Source</label>
+
+        <textarea id="f-source-text" class="form-textarea" placeholder="Paste raw brochure text here..."
+          style="min-height: 80px; margin-bottom: 16px; background: #fff; border-color: rgba(26,107,90,0.3);"></textarea>
+
+        <div style="display: flex; gap: 12px; justify-content: center; align-items: center;">
+          <input type="file" id="f-source-file" accept=".pdf,.docx,.txt" style="font-size: 13px;" />
+          <button type="button" class="btn-submit" onclick="extractSource()" id="extract-btn"
+            style="padding: 8px 24px; font-size: 13px; min-width: 100px;">Auto-Fill</button>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Project Name *</label>
+          <input class="form-input" id="f-name" placeholder="e.g. Skyline Heights" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Developer *</label>
+          <input class="form-input" id="f-dev" placeholder="e.g. Lodha Group" />
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label class="form-label">Tagline *</label>
+          <input class="form-input" id="f-tagline" placeholder="e.g. Luxury Living in the Heart of Mumbai" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Location *</label>
+          <input class="form-input" id="f-location" placeholder="e.g. Worli, Mumbai" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Emoji Icon</label>
+          <input class="form-input" id="f-emoji" placeholder="🏢" maxlength="4" />
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label class="form-label">Configurations (one per line: 2 BHK | 1200 sq ft | ₹2.5 Cr)</label>
+          <textarea class="form-textarea" id="f-configs"
+            placeholder="2 BHK | 950 sq ft | ₹2.5 Cr&#10;3 BHK | 1400 sq ft | ₹3.8 Cr"></textarea>
+          <span class="form-hint">Format each line as: Type | Size | Price</span>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label class="form-label">Key Highlights (one per line)</label>
+          <textarea class="form-textarea" id="f-highlights"
+            placeholder="Rooftop infinity pool&#10;3 km from metro&#10;RERA registered"></textarea>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label class="form-label">Amenities (comma separated)</label>
+          <textarea class="form-textarea" id="f-amenities"
+            placeholder="Swimming pool, Gym, Clubhouse, Kids play area, Jogging track"></textarea>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label class="form-label">Nearby Landmarks (one per line: Name | Distance)</label>
+          <textarea class="form-textarea" id="f-nearby"
+            placeholder="Metro Station | 5 min&#10;City Mall | 10 min"></textarea>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Payment Plan</label>
+          <input class="form-input" id="f-payment" placeholder="20:80 subvention scheme" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact Email</label>
+          <input class="form-input" id="f-contact" placeholder="sales@developer.com" type="email" />
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-submit" onclick="submitProject()">Add Project</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- ── VOICE CALL OVERLAY ──────────────────────────────────── -->
+  <div class="call-overlay" id="call-overlay">
+
+    <div class="call-top">
+      <div class="call-project-badge" id="call-proj-badge">Seabreeze · Godrej Properties</div>
+    </div>
+
+    <div class="call-avatar-wrap">
+      <div class="call-avatar-ring" id="call-ring-1"></div>
+      <div class="call-avatar-ring-2" id="call-ring-2"></div>
+      <div class="call-avatar">🏡</div>
+    </div>
+
+    <div class="call-name">Priya</div>
+    <div class="call-role">Senior Property Advisor · Propello AI</div>
+
+    <div class="call-status idle" id="call-status">Connecting…</div>
+
+    <div class="waveform" id="waveform">
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+    </div>
+
+    <div class="call-timer" id="call-timer">00:00</div>
+
+    <div class="call-controls">
+      <button class="call-ctrl-btn mute-btn" id="mute-btn" onclick="toggleMute()" title="Mute mic">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="2" width="6" height="11" rx="3" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="22" />
+          <line x1="8" y1="22" x2="16" y2="22" />
+        </svg>
+      </button>
+
+      <button class="call-ctrl-btn end-btn" onclick="endCall()" title="End call">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 3.59 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.85" />
+          <line x1="1" y1="1" x2="23" y2="23" />
+        </svg>
+      </button>
+
+      <button class="call-ctrl-btn spd-btn" id="spd-btn" onclick="cycleSpeed()" title="Speech speed">1×</button>
+    </div>
+
+    <div class="call-transcript" id="call-transcript"></div>
+
+  </div>
+
+  <script>
+    const ALL_PROJECTS = {{ projects | tojson | safe }};
+
+    // ── STATE ─────────────────────────────────────────────────────────────────
+    const state = {
+      projectId: '',
+      projectName: 'Global Portfolio',
+      language: 'auto',
+      history: [],
+      lead: { name: null, phone: null, budget: null, location: null, appointment: null },
+      busy: false,
+    };
+
+    const QUICK_SETS = {
+      default: ["Tell me about this project", "What's the pricing?", "Amenities & lifestyle", "Location & connectivity"],
+      pricing: ["What's included?", "Payment plans available?", "Compare 2 BHK vs 3 BHK", "Schedule a site visit"],
+      amenities: ["Pricing details", "Location advantages", "Can I visit the site?"],
+      site_visit: ["How do I book a visit?", "Talk to your sales team", "Send me project brochure"],
+    };
+
+    // ── PROJECT SELECTION ─────────────────────────────────────────────────────
+    function selectProject(el) {
+      document.querySelectorAll('.project-card').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      state.projectId = el.dataset.id;
+      state.projectName = el.dataset.name;
+      state.history = [];
+      state.lead = { name: null, phone: null, budget: null, location: null, appointment: null };
+      document.getElementById('header-project').textContent = el.dataset.name;
+      clearLeadStrip();
+      clearMessages();
+      clearQuickReplies();
+      init();
+    }
+
+    async function deleteProject(id) {
+      if (!confirm('Are you sure you want to delete this project?')) return;
+      try {
+        const res = await fetch('/api/projects/' + id, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Project deleted. Refresh to see changes.');
+        } else { showToast('Error: ' + data.detail); }
+      } catch (e) { showToast('Network error'); }
+    }
+
+    // ── LANGUAGE SELECTION ────────────────────────────────────────────────────
+    function selectLang(el) {
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+      state.language = el.dataset.code;
+      state.history = [];
+      clearMessages();
+      clearQuickReplies();
+      init();
+    }
+
+    // ── RENDER ────────────────────────────────────────────────────────────────
+    function addMessage(role, text) {
+      const container = document.getElementById('messages');
+      const group = document.createElement('div');
+      group.className = `msg-group ${role}`;
+
+      const meta = document.createElement('div');
+      meta.className = 'msg-meta';
+      meta.textContent = role === 'bot' ? 'Priya · Propello AI' : 'You';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerHTML = text.replace(/\n/g, '<br>');
+
+      group.appendChild(meta);
+      group.appendChild(bubble);
+      container.appendChild(group);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function showTyping() {
+      const container = document.getElementById('messages');
+      const group = document.createElement('div');
+      group.className = 'msg-group bot';
+      group.id = 'typing-group';
+
+      const meta = document.createElement('div');
+      meta.className = 'msg-meta';
+      meta.textContent = 'Priya · Propello AI';
+
+      const dots = document.createElement('div');
+      dots.className = 'typing-dots';
+      dots.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+
+      group.appendChild(meta);
+      group.appendChild(dots);
+      container.appendChild(group);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function removeTyping() {
+      document.getElementById('typing-group')?.remove();
+    }
+
+    function clearMessages() {
+      document.getElementById('messages').innerHTML = '';
+    }
+
+    function showQuickReplies(set = 'default') {
+      const area = document.getElementById('quick-area');
+      area.innerHTML = '';
+      (QUICK_SETS[set] || QUICK_SETS.default).forEach(label => {
+        const btn = document.createElement('button');
+        btn.className = 'qr-btn';
+        btn.textContent = label;
+        btn.onclick = () => { document.getElementById('msg-input').value = label; sendMessage(); };
+        area.appendChild(btn);
+      });
+    }
+
+    function clearQuickReplies() {
+      document.getElementById('quick-area').innerHTML = '';
+    }
+
+    // ── LEAD STRIP ────────────────────────────────────────────────────────────
+    function updateLeadStrip() {
+      const fields = { name: 'ld-name', phone: 'ld-phone', budget: 'ld-budget', location: 'ld-location', appointment: 'ld-appointment' };
+      for (const [key, id] of Object.entries(fields)) {
+        const el = document.getElementById(id);
+        if (state.lead[key]) {
+          el.textContent = state.lead[key];
+          el.classList.remove('empty');
+        }
+      }
+    }
+
+    function clearLeadStrip() {
+      ['ld-name', 'ld-phone', 'ld-budget', 'ld-location', 'ld-appointment'].forEach(id => {
+        const el = document.getElementById(id);
+        el.textContent = '—';
+        el.classList.add('empty');
+      });
+    }
+
+    // ── API CALL ──────────────────────────────────────────────────────────────
+    async function callAPI(message) {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: state.projectId,
+          language: state.language,
+          history: state.history,
+          message,
+          lead: state.lead,
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    }
+
+    // ── SEND MESSAGE ──────────────────────────────────────────────────────────
+    async function sendMessage() {
+      if (state.busy) return;
+      const input = document.getElementById('msg-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = '';
+      input.style.height = 'auto';
+      clearQuickReplies();
+      addMessage('user', text);
+
+      state.busy = true;
+      document.getElementById('send-btn').disabled = true;
+      showTyping();
+
+      try {
+        const data = await callAPI(text);
+        removeTyping();
+        addMessage('bot', data.reply);
+
+        // Update history
+        state.history.push({ role: 'user', content: text });
+        state.history.push({ role: 'assistant', content: data.raw_for_history });
+
+        // Update lead
+        if (data.lead) {
+          Object.keys(data.lead).forEach(k => {
+            if (data.lead[k]) state.lead[k] = data.lead[k];
+          });
+          updateLeadStrip();
+        }
+
+        // Smart quick reply selection
+        const lower = data.reply.toLowerCase();
+        if (lower.includes('visit') || lower.includes('schedule') || lower.includes('call you')) {
+          showQuickReplies('site_visit');
+        } else if (lower.includes('crore') || lower.includes('₹') || lower.includes('price') || lower.includes('payment')) {
+          showQuickReplies('pricing');
+        } else if (lower.includes('pool') || lower.includes('amenit') || lower.includes('gym') || lower.includes('sky')) {
+          showQuickReplies('amenities');
+        } else {
+          showQuickReplies('default');
+        }
+
+      } catch (e) {
+        removeTyping();
+        addMessage('bot', "I'm sorry, I had a little trouble connecting. Could you try again?");
+        console.error(e);
+      }
+
+      state.busy = false;
+      document.getElementById('send-btn').disabled = false;
+      input.focus();
+    }
+
+    // ── TEXTAREA AUTO-RESIZE ──────────────────────────────────────────────────
+    const input = document.getElementById('msg-input');
+    input.addEventListener('input', function () {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+    input.addEventListener('keydown', function (e) {
+      if (ttsOn) window.speechSynthesis.cancel();
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+
+    // ── INIT GREETING ─────────────────────────────────────────────────────────
+    async function init() {
+      const sendBtn = document.getElementById('send-btn');
+      sendBtn.disabled = true;
+      state.busy = true;
+      showTyping();
+
+      try {
+        const data = await callAPI('Hi, I want to learn about this project.');
+        removeTyping();
+
+        // Synthetic init — don't pollute history with fake user turn
+        state.history = [{ role: 'assistant', content: data.raw_for_history }];
+        addMessage('bot', data.reply);
+        if (data.lead) { Object.keys(data.lead).forEach(k => { if (data.lead[k]) state.lead[k] = data.lead[k]; }); updateLeadStrip(); }
+        showQuickReplies('default');
+      } catch {
+        removeTyping();
+        addMessage('bot', `Welcome! I'm Priya, your dedicated advisor for ${state.projectName}. I'm here to help you explore this beautiful project — feel free to ask me anything about pricing, amenities, location, or anything else on your mind.`);
+        showQuickReplies('default');
+      }
+
+      state.busy = false;
+      sendBtn.disabled = false;
+    }
+
+    // ── MODAL ─────────────────────────────────────────────────────────────────
+    function openModal() { document.getElementById('modal-overlay').classList.add('open'); }
+    function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+    function closeModalOutside(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+
+    function parseLine(line, sep = '|') {
+      return line.split(sep).map(s => s.trim()).filter(Boolean);
+    }
+
+    async function submitProject() {
+      const name = document.getElementById('f-name').value.trim();
+      const dev = document.getElementById('f-dev').value.trim();
+      const tagline = document.getElementById('f-tagline').value.trim();
+      const location = document.getElementById('f-location').value.trim();
+      if (!name || !dev || !tagline || !location) {
+        showToast('Please fill in all required fields.'); return;
+      }
+
+      const configsRaw = document.getElementById('f-configs').value.trim().split('\n').filter(Boolean);
+      const configs = configsRaw.map(line => {
+        const parts = parseLine(line);
+        return { type: parts[0] || '', size: parts[1] || '', price: parts[2] || '' };
+      });
+
+      const highlights = document.getElementById('f-highlights').value.trim().split('\n').filter(Boolean);
+      const amenitiesRaw = document.getElementById('f-amenities').value.trim();
+      const amenities = amenitiesRaw ? { 'General': amenitiesRaw.split(',').map(s => s.trim()) } : {};
+
+      const nearbyRaw = document.getElementById('f-nearby').value.trim().split('\n').filter(Boolean);
+      const nearby = nearbyRaw.map(line => {
+        const parts = parseLine(line);
+        return { name: parts[0] || '', distance: parts[1] || '' };
+      });
+
+      const payload = {
+        name, developer: dev, tagline, location,
+        logo_emoji: document.getElementById('f-emoji').value.trim() || '🏢',
+        configs, highlights, amenities, nearby,
+        payment_plan: document.getElementById('f-payment').value.trim(),
+        contact: document.getElementById('f-contact').value.trim(),
+      };
+
+      try {
+        const res = await fetch('/api/projects/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+          // Cleared sidebar population because sidebar is hidden in Global Mode.
+          document.querySelectorAll('.form-input, .form-textarea').forEach(el => el.value = '');
+          closeModal();
+          showToast(`"${name}" added successfully! Refresh to see it in chat.`);
+        } else {
+          showToast('Error: ' + (data.error || 'Unknown'));
+        }
+      } catch (e) {
+        showToast('Network error. Please try again.');
+      }
+    }
+
+    async function extractSource() {
+      const fileInput = document.getElementById('f-source-file');
+      const textInput = document.getElementById('f-source-text').value.trim();
+
+      if (!fileInput.files.length && !textInput) {
+        showToast('Please provide a file or paste text first.');
+        return;
+      }
+
+      const btn = document.getElementById('extract-btn');
+      btn.textContent = 'Extracting...';
+      btn.disabled = true;
+
+      const formData = new FormData();
+      if (fileInput.files.length) {
+        formData.append('file', fileInput.files[0]);
+      }
+      if (textInput) {
+        formData.append('raw_text', textInput);
+      }
+
+      try {
+        const res = await fetch('/api/projects/extract-source', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+
+        if (data.success && data.data) {
+          const d = data.data;
+          if (d.name) document.getElementById('f-name').value = d.name;
+          if (d.developer) document.getElementById('f-dev').value = d.developer;
+          if (d.tagline) document.getElementById('f-tagline').value = d.tagline;
+          if (d.location) document.getElementById('f-location').value = d.location;
+          if (d.logo_emoji) document.getElementById('f-emoji').value = d.logo_emoji;
+          if (d.configs) document.getElementById('f-configs').value = d.configs;
+          if (d.highlights) document.getElementById('f-highlights').value = d.highlights;
+          if (d.amenities) document.getElementById('f-amenities').value = d.amenities;
+          if (d.nearby) document.getElementById('f-nearby').value = d.nearby;
+
+          document.getElementById('f-source-text').value = '';
+          fileInput.value = '';
+          showToast('Project details magically auto-filled!');
+        } else {
+          showToast('Error: ' + (data.detail || 'Could not parse source data'));
+        }
+      } catch (e) {
+        showToast('Network error during extraction.');
+      }
+
+      btn.textContent = 'Auto-Fill';
+      btn.disabled = false;
+    }
+
+    function addProjectToSidebar(p) {
+      const list = document.getElementById('project-list');
+      const card = document.createElement('div');
+      card.className = 'project-card';
+      card.dataset.id = p.id;
+      card.dataset.name = p.name;
+      card.dataset.dev = p.developer;
+      card.dataset.emoji = p.logo_emoji;
+      card.onclick = function () { selectProject(this); };
+      card.innerHTML = `
+    <div class="project-emoji">${p.logo_emoji}</div>
+    <div class="project-info">
+      <div class="project-name">${p.name}</div>
+      <div class="project-dev">${p.developer}</div>
+    </div>`;
+      list.appendChild(card);
+    }
+
+    // ── TOAST ─────────────────────────────────────────────────────────────────
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    // ── VAPI VOICE AGENT ──────────────────────────────────────────────────────
+    // Replace YOUR_VAPI_PUBLIC_KEY with your key from vapi.ai/dashboard → API Keys
+    const VAPI_PUBLIC_KEY = '93128be0-80c0-4334-92df-d06223ac4fc9';
+
+    // Azure Neural voices — best Indian language voices available on Vapi
+    const AZURE_VOICES = {
+      en: 'en-IN-NeerjaNeural',
+      hi: 'hi-IN-SwaraNeural',
+      mr: 'mr-IN-AarohiNeural',
+      gu: 'gu-IN-DhwaniNeural',
+      ta: 'ta-IN-PallaviNeural',
+      te: 'te-IN-ShrutiNeural',
+      bn: 'bn-IN-TanishaaNeural',
+      kn: 'kn-IN-SapnaNeural',
+      ml: 'ml-IN-SobhanaNeural',
+      pa: 'en-IN-NeerjaNeural',
+    };
+
+    // Deepgram language codes for STT
+    const DEEPGRAM_LANGS = {
+      en: 'en-IN', hi: 'hi', mr: 'mr', gu: 'gu',
+      ta: 'ta', te: 'te', bn: 'bn', kn: 'kn',
+      ml: 'ml', pa: 'pa',
+    };
+
+    let vapi = null;
+    let callActive = false;
+    let callSecs = 0;
+    let callTimer = null;
+    let waveInt = null;
+
+    // Build Priya's system prompt — voice-optimised (no bullets, conversational)
+    function buildVapiSystemPrompt() {
+      let brief = "";
+      if (ALL_PROJECTS && ALL_PROJECTS.length > 0) {
+        ALL_PROJECTS.forEach(p => {
+          brief += `--- ${p.name.toUpperCase()} ---\n`;
+          brief += `Developer: ${p.developer}\n`;
+          brief += `Tagline: ${p.tagline}\n`;
+          brief += `Location: ${p.location}\n`;
+
+          if (p.configs && p.configs.length > 0) {
+            brief += `Configurations:\n`;
+            p.configs.forEach(c => {
+              brief += `- ${c.type} | Size: ${c.size} | Price: ${c.price}\n`;
+            });
+          }
+          if (p.highlights && p.highlights.length > 0) {
+            brief += `Highlights:\n- ${p.highlights.join('\n- ')}\n`;
+          }
+          if (p.amenities) {
+            for (const [cat, items] of Object.entries(p.amenities)) {
+              brief += `${cat} Amenities: ${items.join(', ')}\n`;
+            }
+          }
+          if (p.nearby && p.nearby.length > 0) {
+            brief += `Nearby Landmarks:\n`;
+            p.nearby.forEach(n => {
+              brief += `- ${n.name} (${n.distance})\n`;
+            });
+          }
+          brief += `Payment Plan: ${p.payment_plan}\n`;
+          brief += `Contact: ${p.contact}\n\n`;
+        });
+      }
+
+      const lead = state.lead;
+      const known = [];
+      if (lead.name) known.push(`Name: ${lead.name}`);
+      if (lead.phone) known.push(`Phone: ${lead.phone}`);
+      if (lead.budget) known.push(`Budget: ${lead.budget}`);
+      if (lead.location) known.push(`Location: ${lead.location}`);
+      if (lead.appointment) known.push(`Appointment: ${lead.appointment}`);
+
+      const missing = [];
+      if (!lead.name) missing.push('full name');
+      if (!lead.phone) missing.push('phone number');
+      if (!lead.budget) missing.push('budget range');
+      if (!lead.location) missing.push('preferred location');
+
+      const collectStr = missing.length
+        ? `Missing crucial lead details: ${missing.join(', ')}. Weave one of these naturally into the conversation. \nSTRICT RULE: If the user asks to book an appointment or site visit, you MUST tell them you cannot book it until they provide their Name, Phone, Budget, and Location. Do not confirm the booking if any of these are missing!`
+        : `You have all the lead info you need. Focus completely on closing — firmly invite them for a highly exclusive site visit and schedule an appointment.`;
+
+      const langName = document.querySelector('#lang-select option:checked')?.textContent || 'English';
+      const langEnforcement = langName !== 'English' && langName !== 'Auto-Detect Lang'
+        ? `\nCRITICAL RULE: You MUST speak EXACTLY and ONLY in ${langName}. Do NOT use English.`
+        : '';
+
+      return `You are Priya, a Senior Property Advisor for Propello AI. You represent a vast portfolio of properties.${langEnforcement}
+      
+THIS IS A VOICE CALL — speak naturally, dynamically, and conversationally.
+- Convince the client to buy properties from your portfolio or book an appointment for a site visit.
+- Keep each response to 2-3 short sentences.
+- Ask one question at a time.
+- Match the caller's energy.
+
+WHAT YOU KNOW ABOUT THIS CALLER:
+${known.length ? known.join(' | ') : 'Nothing yet — start warm and friendly.'}
+
+LEAD COLLECTION GOAL:
+${collectStr}
+
+PROJECT PORTFOLIO FACT SHEET:
+${brief}
+
+Currently booked appointments can't be checked securely during voice mode yet, but securely collect the desired appointment date and time.
+Whenever you detect the user sharing any of these details, silently note them by appending these exact tags exactly ONCE at the VERY END of your absolutely final response:
+[LEAD:name=VALUE], [LEAD:phone=VALUE], [LEAD:budget=VALUE], [LEAD:location=VALUE], [LEAD:appointment=Date and Time]`;
+    }
+
+    // Build the full Vapi assistant config — passed inline, no dashboard setup needed
+    function buildVapiConfig() {
+      const lang = state.language || 'en';
+
+      // Select the optimal Transcriber payload. Nova-2 handles English perfectly but fails on Indian dialects.
+      const transcriber = lang === 'en' ? {
+        provider: 'deepgram',
+        model: 'nova-2',
+        language: 'en-IN',
+      } : {
+        provider: 'deepgram',
+        language: DEEPGRAM_LANGS[lang] || 'hi',
+      };
+
+      return {
+        name: 'Priya',
+        firstMessage: `Hi! I'm Priya, your property advisor. I'm here to help you explore everything about this beautiful project. What would you like to know?`,
+        transcriber: transcriber,
+        model: {
+          provider: 'openai',
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'system', content: buildVapiSystemPrompt() }],
+          tools: [{
+            type: "function",
+            messages: [{ type: "request-start", content: "Updating CRM..." }],
+            function: {
+              name: "save_lead_info",
+              description: "Saves or updates the customer's lead information (name, phone, budget, location, appointment) into the CRM silently. Call this precisely when the user provides any of this contact information.",
+              parameters: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  phone: { type: "string" },
+                  budget: { type: "string" },
+                  location: { type: "string" },
+                  appointment: { type: "string", description: "Date and Time of booking" }
+                }
+              }
+            }
+          }],
+          maxTokens: 200,
+          temperature: 0.75,
+        },
+        voice: {
+          provider: 'azure',
+          voiceId: 'hi-IN-SwaraNeural',//AZURE_VOICES[lang] || AZURE_VOICES.en,
+        },
+        endCallPhrases: ['goodbye', 'bye bye', 'end the call', 'thank you bye', 'that\'s all thank you'],
+        backgroundSound: 'off',
+        backchannelingEnabled: true,
+        backgroundDenoisingEnabled: true,
+      };
+    }
+
+    // ── CALL UI HELPERS ───────────────────────────────────────────────────────
+    function setCallStatus(type, text) {
+      const el = document.getElementById('call-status');
+      el.className = `call-status ${type}`;
+      el.textContent = text;
+    }
+
+    function setCallTranscript(text) {
+      const el = document.getElementById('call-transcript');
+      el.textContent = text;
+      el.classList.toggle('visible', !!text);
+    }
+
+    function animateWaveform(mode) {
+      const bars = document.querySelectorAll('.wave-bar');
+      const wf = document.getElementById('waveform');
+      clearInterval(waveInt);
+      wf.className = 'waveform';
+
+      document.getElementById('call-ring-1').classList.toggle('pulse-ring', mode === 'speaking');
+      document.getElementById('call-ring-2').classList.toggle('pulse-ring', mode === 'speaking');
+
+      if (!mode) { bars.forEach(b => b.style.height = '8px'); return; }
+
+      wf.classList.add(mode === 'listening' ? 'active' : 'speaking-wave');
+      waveInt = setInterval(() => {
+        bars.forEach(b => {
+          b.style.height = (mode === 'listening' ? 5 + Math.random() * 26 : 4 + Math.random() * 34) + 'px';
+        });
+      }, 100);
+    }
+
+    function stopWaveform() {
+      clearInterval(waveInt);
+      document.querySelectorAll('.wave-bar').forEach(b => b.style.height = '8px');
+      document.getElementById('waveform').className = 'waveform';
+      document.getElementById('call-ring-1').classList.remove('pulse-ring');
+      document.getElementById('call-ring-2').classList.remove('pulse-ring');
+    }
+
+    function startCallTimer() {
+      callSecs = 0;
+      callTimer = setInterval(() => {
+        callSecs++;
+        const m = String(Math.floor(callSecs / 60)).padStart(2, '0');
+        const s = String(callSecs % 60).padStart(2, '0');
+        document.getElementById('call-timer').textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    // ── CALL LIFECYCLE ────────────────────────────────────────────────────────
+    async function startCall() {
+      if (VAPI_PUBLIC_KEY === 'YOUR_VAPI_PUBLIC_KEY') {
+        showToast('Add your Vapi key first — open index.html and replace YOUR_VAPI_PUBLIC_KEY');
+        return;
+      }
+
+      if (typeof Vapi === 'undefined') {
+        showToast('Vapi SDK not loaded. Check your internet connection.');
+        return;
+      }
+
+      if (!vapi) vapi = new Vapi(VAPI_PUBLIC_KEY);
+
+      // Show call overlay
+      document.getElementById('call-overlay').classList.add('active');
+      document.getElementById('call-proj-badge').textContent =
+        (document.querySelector('.project-card.active')?.dataset.name) + ' · ' +
+        (document.querySelector('.project-card.active')?.dataset.dev);
+
+      callActive = true;
+      setCallStatus('thinking', 'Connecting…');
+      setCallTranscript('');
+      startCallTimer();
+
+      // ── Vapi event listeners ────────────────────────────────────────────────
+      vapi.on('call-start', () => {
+        setCallStatus('listening', 'Connected — listening…');
+        animateWaveform('listening');
+      });
+
+      vapi.on('call-end', () => {
+        cleanupCall();
+      });
+
+      vapi.on('speech-start', () => {
+        setCallStatus('speaking', 'Priya is speaking…');
+        animateWaveform('speaking');
+      });
+
+      vapi.on('speech-end', () => {
+        setCallStatus('listening', 'Listening…');
+        animateWaveform('listening');
+        setCallTranscript('');
+      });
+
+      vapi.on('message', (msg) => {
+        // Function Calling interception
+        if (msg.type === 'tool-calls' && msg.toolCalls) {
+          msg.toolCalls.forEach(call => {
+            if (call.function && call.function.name === 'save_lead_info') {
+              try {
+                let args = call.function.arguments;
+                if (typeof args === 'string') args = JSON.parse(args);
+                Object.keys(args).forEach(k => { if (args[k]) state.lead[k] = args[k]; });
+                updateLeadStrip();
+                fetch('/api/lead/save', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(state.lead)
+                }).catch(e => console.error(e));
+              } catch (e) {
+                console.error("Tool args parsing failed", e);
+              }
+            }
+          });
+        }
+
+        // Real-time transcript — show what's being said
+        if (msg.type === 'transcript') {
+          if (msg.role === 'user') {
+            setCallTranscript('You: ' + msg.transcript);
+            if (msg.transcriptType === 'final' && msg.transcript.trim()) {
+              addMessage('user', msg.transcript.trim());
+            }
+          } else if (msg.role === 'assistant' && msg.transcriptType === 'final') {
+            addMessage('bot', msg.transcript.trim());
+            setCallTranscript('');
+          }
+        }
+      });
+
+      vapi.on('error', (err) => {
+        console.error('Vapi error:', err);
+        showToast('Call error: ' + (err.message || 'Unknown error'));
+        cleanupCall();
+      });
+
+      // Start the call
+      try {
+        await vapi.start(buildVapiConfig());
+      } catch (err) {
+        showToast('Could not start call: ' + (err.message || 'Check your Vapi key'));
+        cleanupCall();
+      }
+    }
+
+    function endCall() {
+      if (vapi && callActive) vapi.stop();
+      else cleanupCall();
+    }
+
+    function cleanupCall() {
+      callActive = false;
+      clearInterval(callTimer);
+      stopWaveform();
+      document.getElementById('call-overlay').classList.remove('active');
+      document.getElementById('call-timer').textContent = '00:00';
+      setCallTranscript('');
+      showToast('Call ended. Conversation saved to chat.');
+      // Remove all vapi listeners to prevent duplicates on next call
+      if (vapi) { vapi = null; }
+    }
+
+    // ── CALL CONTROLS ─────────────────────────────────────────────────────────
+    function toggleMute() {
+      if (!vapi || !callActive) return;
+      const muted = vapi.isMuted();
+      vapi.setMuted(!muted);
+      document.getElementById('mute-btn').classList.toggle('muted', !muted);
+      setCallStatus(!muted ? 'idle' : 'listening', !muted ? 'Muted' : 'Listening…');
+      if (!muted) stopWaveform();
+      else animateWaveform('listening');
+    }
+
+    const SPEEDS = [0.85, 1.0, 1.2, 1.4];
+    let speedIdx = 1;
+    function cycleSpeed() {
+      speedIdx = (speedIdx + 1) % SPEEDS.length;
+      const spd = SPEEDS[speedIdx];
+      document.getElementById('spd-btn').textContent = spd + '×';
+      // Note: Vapi doesn't expose live TTS speed control — this is for future use
+      showToast(`Speed set to ${spd}× (applies on next call)`);
+    }
+
+    // ── CHAT MIC BUTTON (text input voice) ───────────────────────────────────
+    const LANG_BCP47 = {
+      en: 'en-IN', hi: 'hi-IN', mr: 'mr-IN', gu: 'gu-IN',
+      ta: 'ta-IN', te: 'te-IN', bn: 'bn-IN', kn: 'kn-IN',
+      ml: 'ml-IN', pa: 'pa-IN',
+    };
+
+    let chatListening = false;
+    let chatRec = null;
+
+    function toggleVoiceInput() {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        showToast('Voice input needs Chrome or Edge.'); return;
+      }
+      const micBtn = document.getElementById('mic-btn');
+      if (chatListening) { chatRec?.stop(); return; }
+
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      chatRec = new SR();
+      chatRec.lang = LANG_BCP47[state.language] || 'en-IN';
+      chatRec.interimResults = true;
+
+      chatListening = true;
+      micBtn.classList.add('listening');
+      document.getElementById('msg-input').placeholder = 'Listening…';
+
+      chatRec.onresult = (e) => {
+        document.getElementById('msg-input').value =
+          Array.from(e.results).map(r => r[0].transcript).join('');
+      };
+      chatRec.onend = () => {
+        chatListening = false;
+        micBtn.classList.remove('listening');
+        document.getElementById('msg-input').placeholder = 'Ask about pricing, location, amenities…';
+        const t = document.getElementById('msg-input').value.trim();
+        if (t) sendMessage();
+      };
+      chatRec.onerror = () => {
+        chatListening = false;
+        micBtn.classList.remove('listening');
+        document.getElementById('msg-input').placeholder = 'Ask about pricing, location, amenities…';
+      };
+      chatRec.start();
+    }
+
+    // ── TTS TOGGLE (chat read-aloud) ──────────────────────────────────────────
+    let ttsOn = false;
+    function toggleTTS() {
+      ttsOn = !ttsOn;
+      const btn = document.getElementById('tts-toggle');
+      btn.classList.toggle('on', ttsOn);
+      const label = btn.querySelector('span');
+      if (label) label.textContent = ttsOn ? 'Voice On' : 'Voice Off';
+      if (!ttsOn) window.speechSynthesis.cancel();
+      showToast(ttsOn ? 'Chat voice replies ON' : 'Chat voice replies OFF');
+    }
+
+    function speakReply(text) {
+      if (!ttsOn || callActive) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text.replace(/<[^>]+>/g, ''));
+      utter.lang = LANG_BCP47[state.language] || 'en-IN';
+      utter.rate = 0.95;
+      window.speechSynthesis.speak(utter);
+    }
+
+    const _origAddMessage = addMessage;
+    window.addMessage = function (role, text) {
+      _origAddMessage(role, text);
+      if (role === 'bot' && !callActive) speakReply(text);
+    };
+
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+    init();
+  </script>
+
+  <script type="module">
+    import Vapi from "https://esm.sh/@vapi-ai/web";
+    window.Vapi = Vapi;
+  </script>
+</body>

@@ -1,0 +1,17 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+.env
+
+# Data
+# We ignore the leads CSV so you don't accidentally push your private leads to the public repository.
+# However, we allow the project JSON to remain tracked so that your database has some standard projects on deployment.
+data/leads.csv
+
+# Ignore MacOS hidden files
+.DS_Store

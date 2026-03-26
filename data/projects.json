@@ -1,0 +1,118 @@
+[
+  {
+    "id": "seabreeze-godrej",
+    "name": "Seabreeze",
+    "developer": "Godrej Properties",
+    "tagline": "The Most Exclusive Tower at Godrej Bayview",
+    "location": "Sector 9, Vashi, Navi Mumbai",
+    "logo_emoji": "🌊",
+    "accent_color": "#1a6b5a",
+    "configs": [
+      {
+        "type": "2 BHK",
+        "size": "874+ sq ft",
+        "price": "₹3.20 Cr onwards"
+      },
+      {
+        "type": "3 BHK",
+        "size": "1266+ sq ft",
+        "price": "₹4.75 Cr onwards"
+      }
+    ],
+    "highlights": [
+      "Private deck with every residence",
+      "Stunning sea and city views from spacious balconies",
+      "52+ amenities across 3 levels",
+      "Prime location in Vashi – schools, malls, hospitals within minutes",
+      "Unmatched connectivity – Sion-Panvel Highway, Palm Beach Road & Expressway",
+      "Godrej Properties – India's most trusted developer"
+    ],
+    "amenities": {
+      "Level 1 – Ground Retreat": [
+        "Badminton court",
+        "Senior citizen plaza",
+        "Banquet Hall",
+        "Squash Court",
+        "Kids play area"
+      ],
+      "Level 2 – E-Deck Retreat": [
+        "Swimming pool",
+        "Glass house café",
+        "Yoga Deck",
+        "Crèche",
+        "Party Lawn",
+        "Spa",
+        "Library"
+      ],
+      "Level 3 – Sky Retreat": [
+        "Star Gazing deck",
+        "Sky Yoga",
+        "Tree Court",
+        "Sky Lawn",
+        "Reflexology Pathway"
+      ]
+    },
+    "nearby": [
+      {
+        "name": "Fr. Agnel School & Jr. College",
+        "distance": "2 min"
+      },
+      {
+        "name": "Mini Sea Shore",
+        "distance": "2 min"
+      },
+      {
+        "name": "Reliance Fresh",
+        "distance": "4 min"
+      },
+      {
+        "name": "Fortis Hiranandani Hospital",
+        "distance": "4 min"
+      },
+      {
+        "name": "Inorbit Mall",
+        "distance": "5 min"
+      },
+      {
+        "name": "Four Points by Sheraton",
+        "distance": "5 min"
+      }
+    ],
+    "connectivity": [
+      {
+        "name": "Sion-Panvel Highway",
+        "distance": "2 min"
+      },
+      {
+        "name": "Vashi Station",
+        "distance": "6 min"
+      },
+      {
+        "name": "Vashi Bus Depot",
+        "distance": "4 min"
+      },
+      {
+        "name": "Palm Beach Road",
+        "distance": "4 min"
+      },
+      {
+        "name": "Thane-Belapur Road",
+        "distance": "5 min"
+      },
+      {
+        "name": "Ghatkopar-Mulund Link Rd",
+        "distance": "15 min"
+      },
+      {
+        "name": "Eastern Freeway",
+        "distance": "19 min"
+      },
+      {
+        "name": "Mumbai-Pune Expressway",
+        "distance": "20 min"
+      }
+    ],
+    "payment_plan": "Exciting payment plans available for limited inventory",
+    "contact": "sales@godrejproperties.com"
+  }
+]
