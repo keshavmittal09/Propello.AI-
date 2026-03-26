@@ -14,10 +14,15 @@ from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, Res
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
-
-
 from openai import OpenAI
-# import os
+
+# ── Google Sheets (optional — only active when env vars are set) ───────────────
+try:
+    import gspread
+    from google.oauth2.service_account import Credentials as GCredentials
+    _GSPREAD_AVAILABLE = True
+except ImportError:
+    _GSPREAD_AVAILABLE = False
 
 
 
@@ -54,6 +59,56 @@ load_local_env()
 
 ELEVENLABS_VOICE_ID = os.environ.get("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
 ELEVENLABS_MODEL_ID = os.environ.get("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2")
+
+# ── Google Sheets client (lazy, cached) ───────────────────────────────────────
+_gs_client = None
+_gs_spreadsheet = None
+
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
+
+LEADS_SHEET_NAME    = "Leads"
+PROJECTS_SHEET_NAME = "Projects"
+LEADS_HEADERS       = ["Timestamp", "Last_Updated", "Name", "Phone", "Budget", "Location", "Appointment"]
+
+
+def _use_sheets() -> bool:
+    """Return True only when gspread is installed and credentials are provided."""
+    return _GSPREAD_AVAILABLE and bool(
+        os.environ.get("GOOGLE_CREDENTIALS_JSON") and
+        os.environ.get("SPREADSHEET_ID")
+    )
+
+
+def _get_spreadsheet():
+    """Return (and cache) the authenticated gspread Spreadsheet object."""
+    global _gs_client, _gs_spreadsheet
+    if _gs_spreadsheet is not None:
+        return _gs_spreadsheet
+    creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON", "")
+    creds_dict = json.loads(creds_json)
+    creds = GCredentials.from_service_account_info(creds_dict, scopes=SCOPES)
+    _gs_client = gspread.authorize(creds)
+    spreadsheet_id = os.environ.get("SPREADSHEET_ID")
+    _gs_spreadsheet = _gs_client.open_by_key(spreadsheet_id)
+    # Ensure both sheets exist
+    existing = [ws.title for ws in _gs_spreadsheet.worksheets()]
+    if LEADS_SHEET_NAME not in existing:
+        ws = _gs_spreadsheet.add_worksheet(title=LEADS_SHEET_NAME, rows=1000, cols=20)
+        ws.append_row(LEADS_HEADERS)
+    if PROJECTS_SHEET_NAME not in existing:
+        _gs_spreadsheet.add_worksheet(title=PROJECTS_SHEET_NAME, rows=500, cols=2)
+    return _gs_spreadsheet
+
+
+def _leads_sheet():
+    return _get_spreadsheet().worksheet(LEADS_SHEET_NAME)
+
+
+def _projects_sheet():
+    return _get_spreadsheet().worksheet(PROJECTS_SHEET_NAME)
 
 def resolve_projects_file() -> Path:
     if DATA_PROJECTS_FILE.exists():
@@ -128,7 +183,18 @@ from datetime import datetime
 LEADS_FILE = DATA_DIR / "leads.csv"
 
 def get_booked_appointments() -> list[str]:
-    if not LEADS_FILE.exists(): return []
+    """Return a list of all booked appointment strings (from Sheets or CSV)."""
+    if _use_sheets():
+        try:
+            ws = _leads_sheet()
+            records = ws.get_all_records()
+            return [r["Appointment"] for r in records if r.get("Appointment")]
+        except Exception as e:
+            print(f"Sheets read error (appointments): {e}")
+            return []
+    # Fallback: local CSV
+    if not LEADS_FILE.exists():
+        return []
     booked = []
     try:
         with open(LEADS_FILE, "r", encoding="utf-8") as f:
@@ -141,56 +207,87 @@ def get_booked_appointments() -> list[str]:
         pass
     return booked
 
+
 def log_lead_to_csv(lead: LeadInfo):
+    """Save / update lead in Google Sheets (if configured) or local CSV."""
     if not any([lead.name, lead.phone, lead.budget, lead.location, lead.appointment]):
         return
-        
+
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if _use_sheets():
+        try:
+            ws = _leads_sheet()
+            records = ws.get_all_records()
+            headers = LEADS_HEADERS
+            updated_row_idx = None
+            for idx, row in enumerate(records):
+                match_phone = (lead.phone and row.get("Phone") == lead.phone)
+                match_name  = (lead.name and row.get("Name") == lead.name and not lead.phone)
+                if match_phone or match_name:
+                    updated_row_idx = idx + 2  # +1 header, +1 1-indexed
+                    break
+            if updated_row_idx:
+                # Read existing row then merge
+                existing = ws.row_values(updated_row_idx)
+                # pad to header length
+                while len(existing) < len(headers):
+                    existing.append("")
+                row_dict = dict(zip(headers, existing))
+                if lead.name:        row_dict["Name"]         = lead.name
+                if lead.phone:       row_dict["Phone"]        = lead.phone
+                if lead.budget:      row_dict["Budget"]       = lead.budget
+                if lead.location:    row_dict["Location"]     = lead.location
+                if lead.appointment: row_dict["Appointment"]  = lead.appointment
+                row_dict["Last_Updated"] = now
+                ws.update(f"A{updated_row_idx}", [[row_dict.get(h, "") for h in headers]])
+            else:
+                ws.append_row([
+                    now, now,
+                    lead.name or "", lead.phone or "",
+                    lead.budget or "", lead.location or "",
+                    lead.appointment or ""
+                ])
+        except Exception as e:
+            print(f"Sheets write error (lead): {e}")
+        return
+
+    # ── Fallback: local CSV ────────────────────────────────────────────────────
     LEADS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    file_exists = LEADS_FILE.exists()
-    
     rows = []
-    updated = False
-    
-    if file_exists:
+    if LEADS_FILE.exists():
         try:
             with open(LEADS_FILE, "r", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                rows = list(reader)
+                rows = list(csv.DictReader(f))
         except Exception:
             pass
-            
+    updated = False
     for row in rows:
         match_phone = (lead.phone and row.get("Phone") == lead.phone)
-        match_name = (lead.name and row.get("Name") == lead.name and not lead.phone)
+        match_name  = (lead.name and row.get("Name") == lead.name and not lead.phone)
         if match_phone or match_name:
-            if lead.name: row["Name"] = lead.name
-            if lead.phone: row["Phone"] = lead.phone
-            if lead.budget: row["Budget"] = lead.budget
-            if lead.location: row["Location"] = lead.location
+            if lead.name:        row["Name"]        = lead.name
+            if lead.phone:       row["Phone"]       = lead.phone
+            if lead.budget:      row["Budget"]      = lead.budget
+            if lead.location:    row["Location"]    = lead.location
             if lead.appointment: row["Appointment"] = lead.appointment
-            row["Last_Updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            row["Last_Updated"] = now
             updated = True
             break
-            
     if not updated:
         rows.append({
-            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "Last_Updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "Name": lead.name or "",
-            "Phone": lead.phone or "",
-            "Budget": lead.budget or "",
-            "Location": lead.location or "",
+            "Timestamp": now, "Last_Updated": now,
+            "Name": lead.name or "", "Phone": lead.phone or "",
+            "Budget": lead.budget or "", "Location": lead.location or "",
             "Appointment": lead.appointment or ""
         })
-        
     try:
         with open(LEADS_FILE, "w", encoding="utf-8", newline="") as f:
-            fieldnames = ["Timestamp", "Last_Updated", "Name", "Phone", "Budget", "Location", "Appointment"]
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer = csv.DictWriter(f, fieldnames=LEADS_HEADERS)
             writer.writeheader()
             writer.writerows(rows)
     except PermissionError:
-        print(f"Warning: Could not save to {LEADS_FILE} because it is currently open in another program (like Excel). Please close it to allow saving.")
+        print(f"Warning: {LEADS_FILE} is open in another program. Please close it.")
     except Exception as e:
         print(f"Error saving lead: {e}")
 
@@ -270,6 +367,31 @@ def _build_elevenlabs_tts_request(text: str) -> urllib.request.Request:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def load_projects() -> list[dict]:
+    """Load projects from Google Sheets (if configured) or local JSON files."""
+    if _use_sheets():
+        try:
+            ws = _projects_sheet()
+            rows = ws.get_all_values()  # [[id, json_str], ...]
+            projects = []
+            seen: set[str] = set()
+            for row in rows:
+                if len(row) < 2 or not row[0]:
+                    continue
+                pid = str(row[0]).strip()
+                if pid in seen:
+                    continue
+                try:
+                    project = json.loads(row[1])
+                    seen.add(pid)
+                    projects.append(project)
+                except Exception:
+                    pass
+            return projects
+        except Exception as e:
+            print(f"Sheets read error (projects): {e}")
+            return []
+
+    # ── Fallback: local JSON files ────────────────────────────────────────
     merged: list[dict] = []
     seen_ids: set[str] = set()
     for projects_file in get_projects_files():
@@ -286,9 +408,7 @@ def load_projects() -> list[dict]:
             if not isinstance(item, dict):
                 continue
             pid = str(item.get("id", "")).strip()
-            if not pid:
-                continue
-            if pid in seen_ids:
+            if not pid or pid in seen_ids:
                 continue
             seen_ids.add(pid)
             merged.append(item)
@@ -296,6 +416,19 @@ def load_projects() -> list[dict]:
 
 
 def save_projects(projects: list[dict]) -> None:
+    """Save projects to Google Sheets (if configured) or local JSON file."""
+    if _use_sheets():
+        try:
+            ws = _projects_sheet()
+            ws.clear()
+            rows = [[p.get("id", ""), json.dumps(p, ensure_ascii=False)] for p in projects]
+            if rows:
+                ws.update("A1", rows)
+        except Exception as e:
+            print(f"Sheets write error (projects): {e}")
+        return
+
+    # Fallback: local JSON
     projects_file = resolve_projects_file()
     projects_file.parent.mkdir(parents=True, exist_ok=True)
     with open(projects_file, "w", encoding="utf-8") as f:
@@ -620,8 +753,9 @@ async def render_index(request: Request, admin_view: bool):
             f"<html><body><h2>Propello AI API</h2><p>{message}</p><p>Projects loaded: {count}</p></body></html>"
         )
     return templates.TemplateResponse(
-        "index.html",
-        {
+        request=request,
+        name="index.html",
+        context={
             "request": request,
             "projects": projects,
             "languages": LANGUAGES,
