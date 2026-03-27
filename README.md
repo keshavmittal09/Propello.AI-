@@ -47,7 +47,7 @@ The Indian real estate market is booming — but most developers are still relyi
 - **Barge-in interruption support** — Priya stops talking the instant you speak.
 - Azure Neural voices (`hi-IN-SwaraNeural`, `en-IN-NeerjaNeural`, etc.) for a natural, human-like sound.
 
-### 🌐 10-Language Multilingual Support
+<!-- ### 🌐 10-Language Multilingual Support
 | Language | Code | Voice |
 |----------|------|-------|
 | English (India) | `en` | en-IN-NeerjaNeural |
@@ -59,7 +59,7 @@ The Indian real estate market is booming — but most developers are still relyi
 | Bengali | `bn` | bn-IN-TanishaaNeural |
 | Kannada | `kn` | kn-IN-SapnaNeural |
 | Malayalam | `ml` | ml-IN-SobhanaNeural |
-| Punjabi | `pa` | en-IN-NeerjaNeural |
+| Punjabi | `pa` | en-IN-NeerjaNeural | -->
 
 ### 📋 Automatic Lead Capture & CRM
 - Lead details (Name, Phone, Budget, Location) are silently extracted from **both chat and voice calls**.
@@ -124,9 +124,13 @@ Create a `.env` file in the project root:
 GROQ_API_KEY=gsk_...          # Get from console.groq.com (free)
 VAPI_PUBLIC_KEY=...            # Get from vapi.ai/dashboard → API Keys
 ELEVEN_API_KEY=sk_...          # Optional: for ElevenLabs TTS
+
+# Google Sheets CRM (optional — enables cloud-persistent lead storage)
+SPREADSHEET_ID=...             # From your Google Sheet URL
+GOOGLE_CREDENTIALS_JSON=...    # Paste entire service account JSON as one line
 ```
 
-> **Note:** The app reads `.env` automatically — no `export` commands needed!
+> **Note:** The app reads `.env` automatically. Google Sheets is optional — if not configured, leads fall back to local `data/leads.csv`.
 
 ### 4. Run the server
 ```bash
@@ -139,19 +143,27 @@ Open **http://localhost:8000** in your browser. That's it. 🚀
 
 ---
 
-## ☁️ Deploy to Render (1-Click)
-
-This repository includes a `render.yaml` Blueprint for automatic cloud deployment.
+<!-- ## ☁️ Deploy to Render (Free Tier)
 
 1. Push this repo to GitHub.
-2. Go to [render.com](https://render.com) → **New +** → **Blueprint**.
-3. Connect your repo. Render reads `render.yaml` and auto-configures:
-   - Python environment & startup command
-   - 1 GB persistent disk for `data/` (leads + projects survive restarts)
-4. Add your **3 environment variables** in the Render dashboard.
+2. Go to [render.com](https://render.com) → **New +** → **Web Service**.
+3. Connect your repo. Set:
+   - **Environment:** Python
+   - **Start Command:** `uvicorn app:app --host 0.0.0.0 --port $PORT`
+4. Add environment variables in the Render dashboard (see below).
 5. Hit **Deploy**. Your live URL will be ready in ~2 minutes.
 
----
+### Required Environment Variables on Render
+| Variable | Where to get it |
+|----------|-----------------|
+| `GROQ_API_KEY` | [console.groq.com](https://console.groq.com) (free) |
+| `VAPI_PUBLIC_KEY` | [vapi.ai/dashboard](https://vapi.ai) → API Keys |
+| `SPREADSHEET_ID` | Google Sheet URL → copy the long ID |
+| `GOOGLE_CREDENTIALS_JSON` | Paste minified service account JSON |
+
+> **No persistent disk needed!** Leads and projects are stored in Google Sheets, so everything survives restarts on the free tier.
+
+--- -->
 
 ## 📁 Project Structure
 
@@ -161,14 +173,15 @@ propello-ai/
 ├── requirements.txt          # Python dependencies
 ├── render.yaml               # Render.com deployment blueprint
 ├── Procfile                  # Heroku / Railway startup command
-├── .env                      # API keys (never commit this!)
-├── .gitignore                # Protects .env and leads.csv from GitHub
+├── .env                      # API keys + Google Sheets credentials (never commit!)
+├── .gitignore                # Protects .env, JSON keys, and leads.csv from GitHub
 ├── data/
-│   ├── projects.json         # 🏠 Property database (persists across restarts)
-│   └── leads.csv             # 📊 Live CRM — every lead captured here
+│   └── projects.json         # 🏠 Local property database (fallback)
 └── templates/
     └── index.html            # Full chat + voice UI (single-file frontend)
 ```
+
+> **In production:** leads and projects sync to **Google Sheets** automatically — no local files needed.
 
 ---
 
@@ -187,13 +200,13 @@ propello-ai/
 
 ---
 
-## 🛡️ Security
+<!-- ## 🛡️ Security
 
 - All API keys are loaded from `.env` — never hard-coded.
 - `.gitignore` ensures keys and private lead data are never pushed to GitHub.
 - Appointment collision detection prevents any two buyers from booking the same slot.
 
----
+--- -->
 
 ## 🛠️ Tech Stack
 
@@ -206,9 +219,10 @@ propello-ai/
 | Text-to-Speech | Microsoft Azure Neural Voice |
 | PDF Parsing | PyMuPDF (fitz) |
 | DOCX Parsing | python-docx |
-| Storage | JSON (projects) + CSV (leads) |
+| CRM Storage | **Google Sheets** (cloud) → CSV fallback (local) |
+| Project Storage | **Google Sheets** (cloud) → JSON fallback (local) |
 | Frontend | Vanilla HTML5, CSS3, JavaScript ES6 |
-| Deployment | Render.com (with persistent disk) |
+| Deployment | Render.com (free tier via Google Sheets persistence) |
 
 ---
 

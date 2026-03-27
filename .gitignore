@@ -15,3 +15,7 @@ data/leads.csv
 
 # Ignore MacOS hidden files
 .DS_Store
+
+# Google Service Account JSON key — NEVER commit this
+*.json
+!data/projects.json
