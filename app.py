@@ -1104,6 +1104,27 @@ async def delete_project(project_id: str):
     return {"success": True}
 
 
+@app.get("/api/leads")
+async def get_leads():
+    """Return all captured leads from Google Sheets (if configured) or local CSV."""
+    if _use_sheets():
+        try:
+            ws = _leads_sheet()
+            records = ws.get_all_records()
+            return records
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Sheets read error: {e}")
+    # Fallback: local CSV
+    leads = []
+    if LEADS_FILE.exists():
+        try:
+            with open(LEADS_FILE, "r", encoding="utf-8") as f:
+                leads = list(csv.DictReader(f))
+        except Exception:
+            pass
+    return leads
+
+
 # ── Entry point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
