@@ -128,9 +128,15 @@ ELEVEN_API_KEY=sk_...          # Optional: for ElevenLabs TTS
 # Google Sheets CRM (optional — enables cloud-persistent lead storage)
 SPREADSHEET_ID=...             # From your Google Sheet URL
 GOOGLE_CREDENTIALS_JSON=...    # Paste entire service account JSON as one line
+
+# PropelloCRM sync (recommended in production)
+CRM_WEBHOOK_URL=https://<your-crm-backend>/api/priya/lead-captured
+CRM_WEBHOOK_SECRET=<same-as-PRIYA_WEBHOOK_SECRET-on-CRM>
 ```
 
 > **Note:** The app reads `.env` automatically. Google Sheets is optional — if not configured, leads fall back to local `data/leads.csv`.
+
+When `CRM_WEBHOOK_URL` is configured, captured chatbot leads and appointment intent are synced to PropelloCRM.
 
 ### 4. Run the server
 ```bash

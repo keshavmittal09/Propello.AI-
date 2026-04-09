@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import urllib.parse
 import urllib.request
 import urllib.error
 import tempfile
@@ -301,20 +302,64 @@ def log_lead_to_crm(lead: LeadInfo, transcript: str = "") -> bool:
     if not any([lead.name, lead.phone, lead.budget, lead.location, lead.appointment]):
         return False
 
+    if not (lead.phone or "").strip():
+        return False
+
+    def _resolve_webhook_url(raw_url: str) -> str:
+        parsed = urllib.parse.urlparse(raw_url)
+        path = (parsed.path or "").rstrip("/").lower()
+        if path in ("/api/priya/lead-captured", "/api/leads/inbound", "/api/webhooks/priya"):
+            return raw_url
+        return raw_url.rstrip("/") + "/api/priya/lead-captured"
+
+    def _parse_budget_range(raw: Optional[str]) -> tuple[Optional[float], Optional[float]]:
+        if not raw:
+            return None, None
+        text = str(raw).lower().replace(",", "").replace("₹", "")
+        matches = re.findall(r"(\d+(?:\.\d+)?)\s*(cr|crore|l|lac|lakh)?", text)
+        if not matches:
+            return None, None
+
+        values = []
+        for num, unit in matches:
+            value = float(num)
+            if unit in ("cr", "crore"):
+                value *= 10_000_000
+            elif unit in ("l", "lac", "lakh"):
+                value *= 100_000
+            values.append(value)
+
+        if len(values) == 1:
+            return None, values[0]
+        return min(values[0], values[1]), max(values[0], values[1])
+
+    budget_min, budget_max = _parse_budget_range(lead.budget)
+
+    appointment_note = f"Appointment requested: {lead.appointment}" if lead.appointment else None
+    notes = "\n".join(x for x in [appointment_note, transcript[:1200] if transcript else None] if x)
+
     payload = {
-        "name": lead.name,
-        "phone": lead.phone,
-        "budget": lead.budget,
-        "location": lead.location,
-        "appointment": lead.appointment,
-        "transcript": transcript,
+        "source": "priya_ai",
+        "name": lead.name or "Unknown Lead",
+        "phone": (lead.phone or "").strip(),
+        "budget_min": budget_min,
+        "budget_max": budget_max,
+        "location_preference": lead.location,
+        "timeline": lead.appointment,
+        "transcript_summary": transcript[:1200] if transcript else None,
+        "personal_notes": notes or None,
     }
+
+    secret = (os.environ.get("CRM_WEBHOOK_SECRET") or os.environ.get("PRIYA_WEBHOOK_SECRET") or "").strip()
+    headers = {"Content-Type": "application/json"}
+    if secret:
+        headers["x-priya-secret"] = secret
 
     try:
         req = urllib.request.Request(
-            url,
+            _resolve_webhook_url(url),
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers=headers,
             method="POST",
         )
         urllib.request.urlopen(req, timeout=5)

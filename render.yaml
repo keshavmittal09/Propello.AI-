@@ -11,6 +11,10 @@ services:
         sync: false
       - key: VAPI_PUBLIC_KEY
         sync: false
+      - key: CRM_WEBHOOK_URL
+        sync: false
+      - key: CRM_WEBHOOK_SECRET
+        sync: false
     disk:
       name: propello-data-disk
       mountPath: /opt/render/project/src/data
