@@ -292,6 +292,44 @@ def log_lead_to_csv(lead: LeadInfo):
         print(f"Error saving lead: {e}")
 
 
+def log_lead_to_crm(lead: LeadInfo, transcript: str = "") -> bool:
+    """Best-effort sync of lead data to external CRM webhook."""
+    url = (os.environ.get("CRM_WEBHOOK_URL") or "").strip()
+    if not url:
+        return False
+
+    if not any([lead.name, lead.phone, lead.budget, lead.location, lead.appointment]):
+        return False
+
+    payload = {
+        "name": lead.name,
+        "phone": lead.phone,
+        "budget": lead.budget,
+        "location": lead.location,
+        "appointment": lead.appointment,
+        "transcript": transcript,
+    }
+
+    try:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        urllib.request.urlopen(req, timeout=5)
+        return True
+    except Exception as e:
+        print(f"CRM webhook error: {e}")
+        return False
+
+
+def persist_lead(lead: LeadInfo, transcript: str = "") -> None:
+    """Persist lead to local storage and external CRM (if configured)."""
+    log_lead_to_csv(lead)
+    log_lead_to_crm(lead, transcript)
+
+
 class ChatMessage(BaseModel):
     role:    str
     content: str
@@ -791,7 +829,7 @@ async def chat(body: ChatRequest):
         )
     clean, new_lead = parse_lead_tags(raw, merged_lead)
     new_lead = extract_lead_from_user_message(body.message, new_lead)
-    log_lead_to_csv(new_lead)
+    persist_lead(new_lead, clean)
 
     return JSONResponse({
         "reply":           clean,
@@ -859,7 +897,7 @@ async def chat_stream(body: ChatRequest):
 
             clean, new_lead = parse_lead_tags(raw, merged_lead)
             new_lead = extract_lead_from_user_message(body.message, new_lead)
-            log_lead_to_csv(new_lead)
+            persist_lead(new_lead, clean)
 
             done_payload = {
                 "type": "done",
@@ -1056,7 +1094,7 @@ OUTPUT ONLY STRICT RENDERABLE JSON WITHOUT ANY MARKDOWN BLOCKS AROUND IT."""
 
 @app.post("/api/lead/save")
 async def save_lead_api(lead: LeadInfo):
-    log_lead_to_csv(lead)
+    persist_lead(lead)
     return {"success": True}
 
 
