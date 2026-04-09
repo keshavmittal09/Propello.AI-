@@ -149,6 +149,63 @@ def get_llm_client() -> OpenAI:
     return OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
 
 
+def get_chat_models() -> list[str]:
+    """Return primary + fallback chat models (deduplicated, in order)."""
+    primary = (os.environ.get("GROQ_MODEL") or "llama-3.3-70b-versatile").strip()
+    fallback_raw = (os.environ.get("GROQ_FALLBACK_MODELS") or "llama-3.1-8b-instant,gemma2-9b-it").strip()
+
+    models: list[str] = []
+    if primary:
+        models.append(primary)
+    for part in fallback_raw.split(","):
+        model = part.strip()
+        if model:
+            models.append(model)
+
+    deduped: list[str] = []
+    for model in models:
+        if model not in deduped:
+            deduped.append(model)
+    return deduped
+
+
+def create_chat_completion_with_fallback(
+    client: OpenAI,
+    messages: list[dict],
+    max_tokens: int,
+    stream: bool = False,
+):
+    """Try primary model first, then configured fallbacks on quota/model failures."""
+    models = get_chat_models()
+    rate_limited = False
+    last_error = None
+
+    for model in models:
+        try:
+            return client.chat.completions.create(
+                model=model,
+                max_tokens=max_tokens,
+                messages=messages,
+                stream=stream,
+            )
+        except Exception as exc:
+            last_error = exc
+            text = str(exc).lower()
+            if "rate limit" in text or "rate_limit" in text or "429" in text:
+                rate_limited = True
+                continue
+            if "model" in text and ("not found" in text or "does not exist" in text or "unknown" in text):
+                continue
+            # Other API errors can still recover on fallback models.
+            continue
+
+    if rate_limited:
+        raise RuntimeError("Priya is temporarily rate-limited on AI tokens. Please retry in a few minutes.")
+    if last_error:
+        raise RuntimeError(f"AI request failed: {last_error}")
+    raise RuntimeError("AI request failed: no model could generate a response.")
+
+
 def has_llm_key() -> bool:
     return bool(os.environ.get("GROQ_API_KEY") or os.environ.get("OPENAI_API_KEY"))
 
@@ -854,11 +911,15 @@ async def chat(body: ChatRequest):
     payload_messages, resolved_language, merged_lead, _ = prepare_chat_context(body)
 
     client = get_llm_client()
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        max_tokens=450,
-        messages=payload_messages,
-    )
+    try:
+        response = create_chat_completion_with_fallback(
+            client=client,
+            messages=payload_messages,
+            max_tokens=450,
+            stream=False,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
 #     response = client.responses.create(
 #     input="Explain the importance of fast language models",
 #     model="",
@@ -894,10 +955,10 @@ async def chat_stream(body: ChatRequest):
     def event_stream():
         try:
             client = get_llm_client()
-            stream = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                max_tokens=450,
+            stream = create_chat_completion_with_fallback(
+                client=client,
                 messages=payload_messages,
+                max_tokens=450,
                 stream=True,
             )
 
@@ -952,6 +1013,9 @@ async def chat_stream(body: ChatRequest):
                 "raw_for_history": raw,
             }
             yield f"data: {json.dumps(done_payload, ensure_ascii=False)}\n\n"
+        except RuntimeError as exc:
+            payload = {"type": "error", "detail": str(exc)}
+            yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
         except Exception as exc:
             payload = {"type": "error", "detail": str(exc)}
             yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
