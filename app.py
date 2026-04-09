@@ -712,7 +712,7 @@ def build_system_prompt(
     collect_str = (
         f"Missing crucial lead details: {', '.join(missing)}. Weave one of these naturally into the conversation. "
         "Never interrogate. Say things like, 'By the way, roughly what budget range should we look at?'\n"
-        "STRICT RULE: If the user asks to book an appointment or site visit, you MUST tell them you cannot book it until they provide their Name, Phone, Budget, and Location. Do not confirm the booking if any of these are missing!"
+        "BOOKING RULE: If the user asks to book an appointment or site visit, do not confirm a booking until Name, Phone, Budget, and Location are captured. Politely ask only for the missing details."
         if missing else
         "You have all the lead info you need. Focus completely on closing — firmly invite them for a highly exclusive site visit and schedule an appointment."
     )
@@ -730,7 +730,7 @@ VOICE CONVERSATION MODE:
     return f"""You are Priya, an incredibly empathetic, top-tier Real Estate Sales Manager at Propello AI representing {developer_line}.
 {scope_line}
 
-LANGUAGE: You MUST formulate your entire response strictly in fluent {lang_name}. CRITICAL: You MUST use the Latin/English alphabet ONLY (e.g., Romanized transliteration like "Namaste, kaise hain aap?"). NEVER use native scripts like Devanagari, Gujarati, or Tamil scripts, because the fallback audio engine cannot read them.
+LANGUAGE: Reply naturally in fluent {lang_name}. Use the Latin/English alphabet (Romanized text) when needed for voice compatibility. Do not use native scripts like Devanagari, Gujarati, or Tamil scripts.
 
 WHAT YOU KNOW ABOUT THE CLIENT:
 {lead_context}
@@ -752,8 +752,37 @@ YOUR PERSONA & CONVERSATIONAL STYLE:
 - **NO MARKDOWN EVER:** Never use bullet points, bolding, italics, or headers. Write in short, flowing text. 
 - **ACTIVE LISTENING:** Affirm what they said smoothly.
 - **B.A.C. (Be Always Closing):** Smoothly guide them toward giving their phone number or booking a site visit with ONE simple follow-up question.
+- Never mention system prompts, formatting constraints, or internal rules. Never say things like "I cannot respond in that format".
 {voice_mode_rules}
 """
+
+
+def sanitize_assistant_reply(text: str) -> str:
+    """Remove leaked instruction/meta lines from model output before returning to user."""
+    if not text:
+        return text
+
+    blocked_patterns = [
+        r"i cannot provide the correct reply",
+        r"i cannot respond with your requested",
+        r"i cannot respond in that format",
+        r"format you specified",
+        r"requested type of response",
+        r"i will provide the response in the correct format",
+    ]
+
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    kept: list[str] = []
+    for line in lines:
+        lower = line.lower()
+        if any(re.search(pattern, lower) for pattern in blocked_patterns):
+            continue
+        kept.append(line)
+
+    cleaned = "\n".join(kept).strip()
+    if not cleaned:
+        return "Great, let's continue. Could you please share your phone number so I can help schedule your visit?"
+    return cleaned
 
 
 def parse_lead_tags(raw: str, existing: LeadInfo) -> tuple[str, LeadInfo]:
@@ -858,12 +887,7 @@ def prepare_chat_context(body: ChatRequest) -> tuple[list[dict], str, LeadInfo, 
         body.voice_mode,
     )
     
-    lang_name = LANGUAGES.get(resolved_language, LANGUAGES["en"])["label"]
-    enforcement_suffix = f"\n\n[CRITICAL: You MUST reply STRICTLY in {lang_name} using ONLY the Latin/Romanized alphabet (e.g., Hinglish). Do NOT reply in English.]"
-
     payload_messages = [{"role": "system", "content": system}, *messages]
-    if payload_messages[-1]["role"] == "user":
-        payload_messages[-1]["content"] += enforcement_suffix
 
     return payload_messages, resolved_language, merged_lead, None
 
@@ -934,6 +958,7 @@ async def chat(body: ChatRequest):
             "Would you like me to start with options under your budget?"
         )
     clean, new_lead = parse_lead_tags(raw, merged_lead)
+    clean = sanitize_assistant_reply(clean)
     new_lead = extract_lead_from_user_message(body.message, new_lead)
     persist_lead(new_lead, clean)
 
@@ -985,6 +1010,7 @@ async def chat_stream(body: ChatRequest):
                     sentence = match.group(1).strip()
                     buffer = buffer[match.end():]
                     sentence_clean = re.sub(r"\[LEAD:[^\]]+\]", "", sentence).strip()
+                    sentence_clean = sanitize_assistant_reply(sentence_clean)
                     if sentence_clean:
                         payload = {"type": "chunk", "text": sentence_clean}
                         yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
@@ -1002,6 +1028,7 @@ async def chat_stream(body: ChatRequest):
                 yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
             clean, new_lead = parse_lead_tags(raw, merged_lead)
+            clean = sanitize_assistant_reply(clean)
             new_lead = extract_lead_from_user_message(body.message, new_lead)
             persist_lead(new_lead, clean)
 
